@@ -6,6 +6,6 @@ eos_root_password: 123456
 
 sonic_login: "admin"
 sonic_default_passwords:
- - "YourPaSsWoRd"
+ - "admin"
  - "password"
 sonic_password: "password"

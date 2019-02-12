@@ -48,6 +48,10 @@
   when: vm_name not in vm_list_running.list_vms or vm_name in respin_vms
   become: yes
 
+- name: sleep for 60 seconds and continue with play
+  wait_for: timeout=60
+  delegate_to: localhost
+
 - name: Wait until vm {{ vm_name }} is loaded
   kickstart: telnet_port={{ serial_port }}
              login={{ eos_default_login }}
