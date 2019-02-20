@@ -5,10 +5,10 @@ STR-ACS-VSERV-01 ansible_host=172.17.0.1 ansible_user=jipan
 vm_host_1
 
 [vms_1]
-VM0100 ansible_host=10.250.0.51
-VM0101 ansible_host=10.250.0.52
-VM0102 ansible_host=10.250.0.53
-VM0103 ansible_host=10.250.0.54
+VM0100 ansible_host=10.250.0.2
+VM0101 ansible_host=10.250.0.3
+VM0102 ansible_host=10.250.0.4
+VM0103 ansible_host=10.250.0.5
 
 
 [eos:children]
