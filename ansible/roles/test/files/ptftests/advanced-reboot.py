@@ -485,7 +485,9 @@ class ReloadTest(BaseTest):
         self.check_param('min_bgp_gr_timeout', 15, required = False)
         self.check_param('warm_up_timeout_secs', 180, required = False)
         self.check_param('dut_stabilize_secs', 20, required = False)
+        self.check_param('docker_name', '', required = False)
 
+        self.docker_name = ''
         self.log_file_name = '/tmp/%s.log' % self.test_params['reboot_type']
         self.log_fp = open(self.log_file_name, 'w')
 
@@ -504,7 +506,7 @@ class ReloadTest(BaseTest):
         #   Inter-packet interval, to be used in send_in_background method.
         #   Improve this interval to gain more precision of disruptions.
         self.send_interval = 0.0035
-        self.packets_to_send = min(int(self.time_to_listen / (self.send_interval + 0.0015)), 45000) # How many packets to be sent in send_in_background method 
+        self.packets_to_send = min(int(self.time_to_listen / (self.send_interval + 0.0015)), 45000) # How many packets to be sent in send_in_background method
 
         # State watcher attributes
         self.watching            = False
@@ -604,6 +606,8 @@ class ReloadTest(BaseTest):
         vlan_ip_range = self.test_params['vlan_ip_range']
         self.vlan_ports = self.read_vlan_ports()
 
+        self.docker_name = self.test_params['docker_name']
+
         self.limit = datetime.timedelta(seconds=self.test_params['reboot_limit_in_seconds'])
         self.reboot_type = self.test_params['reboot_type']
         if self.reboot_type not in ['fast-reboot', 'warm-reboot']:
@@ -627,6 +631,8 @@ class ReloadTest(BaseTest):
         self.log("From server dst ports: %s" % self.from_server_dst_ports)
         self.log("From upper layer number of packets: %d" % self.nr_vl_pkts)
         self.log("VMs: %s" % str(self.test_params['arista_vms']))
+
+        self.log("docker_name: %s" % self.docker_name)
 
         self.log("Reboot type is %s" % self.reboot_type)
 
@@ -886,9 +892,10 @@ class ReloadTest(BaseTest):
             self.watcher_is_stopped.set()               # By default the Watcher is not running.
             self.watcher_is_running.clear()             # By default its required to wait for the Watcher started.
             # Give watch thread some time to wind up
-            time.sleep(5)
+            #time.sleep(5)
 
             self.log("Check that device is alive and pinging")
+            time.sleep(5)
             self.fails['dut'].add('DUT is not ready for test')
             self.assertTrue(self.wait_dut_to_warm_up(), 'DUT is not stable')
             self.fails['dut'].clear()
@@ -896,10 +903,11 @@ class ReloadTest(BaseTest):
             self.log("Schedule to reboot the remote switch in %s sec" % self.reboot_delay)
             thr.start()
 
-            self.log("Wait until Control plane is down")
-            self.timeout(self.task_timeout, "DUT hasn't shutdown in %d seconds" % self.task_timeout)
-            self.wait_until_cpu_port_down()
-            self.cancel_timeout()
+            if not self.docker_name:
+                self.log("Wait until Control plane is down")
+                self.timeout(self.task_timeout, "DUT hasn't shutdown in %d seconds" % self.task_timeout)
+                self.wait_until_cpu_port_down()
+                self.cancel_timeout()
 
             if self.reboot_type == 'fast-reboot':
                 self.light_probe = True
@@ -1078,13 +1086,23 @@ class ReloadTest(BaseTest):
     def reboot_dut(self):
         time.sleep(self.reboot_delay)
 
-        self.log("Rebooting remote side")
-        stdout, stderr, return_code = self.cmd(["ssh", "-oStrictHostKeyChecking=no", self.dut_ssh, "sudo " + self.reboot_type])
-        if stdout != []:
-            self.log("stdout from %s: %s" % (self.reboot_type, str(stdout)))
-        if stderr != []:
-            self.log("stderr from %s: %s" % (self.reboot_type, str(stderr)))
-        self.log("return code from %s: %s" % (self.reboot_type, str(return_code)))
+        if self.docker_name:
+            self.log("%s docker %s remote side" % (self.reboot_type, self.docker_name))
+            stdout, stderr, return_code = self.cmd(["ssh", "-oStrictHostKeyChecking=no", self.dut_ssh, \
+                "sudo config warm_restart enable " + self.docker_name + " && sudo systemctl restart " + self.docker_name])
+            if stdout != []:
+                self.log("stdout from %s %s: %s" % (self.reboot_type, self.docker_name, str(stdout)))
+            if stderr != []:
+                self.log("stderr from %s %s: %s" % (self.reboot_type, self.docker_name, str(stderr)))
+            self.log("return code from %s %s: %s" % (self.reboot_type, self.docker_name, str(return_code)))
+        else:
+            self.log("Rebooting remote side")
+            stdout, stderr, return_code = self.cmd(["ssh", "-oStrictHostKeyChecking=no", self.dut_ssh, "sudo " + self.reboot_type])
+            if stdout != []:
+                self.log("stdout from %s: %s" % (self.reboot_type, str(stdout)))
+            if stderr != []:
+                self.log("stderr from %s: %s" % (self.reboot_type, str(stderr)))
+            self.log("return code from %s: %s" % (self.reboot_type, str(return_code)))
 
         # Note: a timeout reboot in ssh session will return a 255 code
         if return_code not in [0, 255]:
