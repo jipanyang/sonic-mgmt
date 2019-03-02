@@ -180,7 +180,7 @@
         - vlan_ip_range=\"{{ minigraph_vlan_interfaces[0]['subnet'] }}\"
         - lo_v6_prefix=\"{{ minigraph_lo_interfaces | map(attribute='addr') | ipv6 | first | ipsubnet(64) }}\"
         - arista_vms=\"['{{ vm_hosts | list | join("','") }}']\"
-        - docker_name=\"{{ docker_name }}\"
+        - docker_name=\"{{ docker_name|default("", true) }}\"
 
   always:
     - name: Copy test results from ptf to the local box /tmp/*-reboot.log
