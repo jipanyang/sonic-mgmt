@@ -1088,8 +1088,36 @@ class ReloadTest(BaseTest):
 
         if self.docker_name:
             self.log("%s docker %s remote side" % (self.reboot_type, self.docker_name))
+
+            if self.reboot_type == "warm-reboot":
+                stdout, stderr, return_code = self.cmd(["ssh", "-oStrictHostKeyChecking=no", self.dut_ssh, \
+                    "sudo config warm_restart enable " + self.docker_name])
+
+                if stderr != []:
+                    self.log("stderr from \"sudo config warm_restart enable %s\": %s" % (self.docker_name, str(stderr)))
+
+                if self.docker_name == "teamd":
+                    stdout, stderr, return_code = self.cmd(["ssh", "-oStrictHostKeyChecking=no", self.dut_ssh, \
+                        "docker exec -i teamd pkill -USR1 teamd"])
+                elif self.docker_name == "swss":
+                    stdout, stderr, return_code = self.cmd(["ssh", "-oStrictHostKeyChecking=no", self.dut_ssh, \
+                        "docker exec -i swss orchagent_restart_check -w 1000"])
+                elif self.docker_name == "bgp":
+                    stdout, stderr, return_code = self.cmd(["ssh", "-oStrictHostKeyChecking=no", self.dut_ssh, \
+                        "docker exec -i bgp pkill -9 zebra && docker exec -i bgp pkill -9 bgpd"])
+                else:
+                    self.log("Warm restart for %s is not supported, proceed to cold restart" % self.docker_name);
+
+                if stdout != []:
+                    self.log("stdout from %s %s pre processing: %s" % (self.reboot_type, self.docker_name, str(stdout)))
+                if stderr != []:
+                    self.log("stderr from %s %s pre processing: %s" % (self.reboot_type, self.docker_name, str(stderr)))
+
+                time.sleep(2) # wait for pre-processing to settle down.
+
             stdout, stderr, return_code = self.cmd(["ssh", "-oStrictHostKeyChecking=no", self.dut_ssh, \
-                "sudo config warm_restart enable " + self.docker_name + " && sudo systemctl restart " + self.docker_name])
+                "sudo systemctl restart " + self.docker_name])
+
             if stdout != []:
                 self.log("stdout from %s %s: %s" % (self.reboot_type, self.docker_name, str(stdout)))
             if stderr != []:
