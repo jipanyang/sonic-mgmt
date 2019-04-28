@@ -48,7 +48,7 @@
   when: vm_name not in vm_list_running.list_vms or vm_name in respin_vms
   become: yes
 
-- name: sleep for 180 seconds and continue with play
+- name: pause for 180 seconds and continue with play
   pause: seconds=180
 
 - name: Wait until vm {{ vm_name }} is loaded
