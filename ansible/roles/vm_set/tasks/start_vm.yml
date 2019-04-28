@@ -49,8 +49,7 @@
   become: yes
 
 - name: sleep for 180 seconds and continue with play
-  wait_for: timeout=180
-  delegate_to: localhost
+  pause: seconds=180
 
 - name: Wait until vm {{ vm_name }} is loaded
   kickstart: telnet_port={{ serial_port }}

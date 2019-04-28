@@ -40,9 +40,8 @@
   when: dut_name not in vm_list_running.list_vms
   become: yes
 
-- name: sleep for 120 seconds and continue with play
-  wait_for: timeout=120
-  delegate_to: localhost
+- name: pause for 120 seconds and continue with play
+  pause: seconds=120
 
 - name: Wait until vm {{ dut_name }} is loaded
   sonic_kickstart: telnet_port={{ serial_port }}
